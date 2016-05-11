@@ -1,0 +1,327 @@
+MEMSAT-SVM Usage Notes
+======================
+
+Program  and documentation  is  Copyright  (C)  2008  David T. Jones and
+Timothy Nugent, all rights reserved.
+
+All Trademarks and Registered Names are acknowledged in this document.
+
+THIS SOFTWARE MAY ONLY BE USED FOR NON-COMMERCIAL PURPOSES. PLEASE CONTACT
+THE AUTHOR IF YOU REQUIRE A LICENSE FOR COMMERCIAL USE.
+
+
+Compiling MEMSAT-SVM
+====================
+
+C and C++ compilers differ from system to system. However on a standard
+Unix or Linux system, MEMSAT-SVM can be compiled simply with:
+
+make
+
+
+A copy of SVM Light is included; the executable will be placed in the bin
+folder where the run_memsat-svm.pl expects to find it. Full details of 
+SVM light, including the licence, can be found at:
+
+http://svmlight.joachims.org/
+
+
+To produce graphical representations of topology, the GD library and the
+perl GD module must be installed. The GD library should be present on
+most modern Linux distributions. The perl GD module can usually be 
+installed by running the following command as root:
+
+cpan -i GD
+
+
+Configuring MEMSAT-SVM
+======================
+
+Importantly, a few paths need to be set before using MEMSAT-SVM: see the
+comments on top of script "run_memsat-svm.pl" and set variables accordingly.
+
+In particular, the absolute path to the Perl library needs to be set.
+
+Also, the path to this directory, to the NCBI binary directory and to a
+database for PSI-BLAST searches must be set. 
+
+my $mem_dir = '........'; # directory where "run_memsat-svm.pl" can be found
+.
+.
+.
+my $ncbidir = '........'; # where blastpgp and makemat are found
+my $dbname  = '........'; # e.g. swissprot.fa, which has been formatdb'ed
+
+You can also pass these last 3 values using the following paramaters:
+
+./run_memsat-svm.pl -w /path/to/memsat-svm/ -n /usr/local/blast/bin/ -d swissprot.fa fasta.fa
+
+If the NCBI directory is not specified, the script will try to find it using
+'locate blastpgp'.
+
+Finally, note that MEMSAT-SVM writes several temporary files (these will be
+erased if flag '-e 1' is used), some of them inside the "input" folder, some
+inside the "output" folder where the results are saved as well.
+Default folders are present; however, when running several similar sequences
+at the same time, it is wise to specify sequence-specific input and output
+folders by means of flags '-i' and '-j', in order to avoid clashes due to
+identical temporary file names.
+
+Try "./run_memsat-svm.pl" or "./run_memsat-svm.pl -h" for help on all
+available flags.
+
+
+Ubuntu Configuration
+====================
+
+The ./run_memsat-svm.pl uses bash instead of Ubuntu's dash shell. You'll 
+have to change it like this:
+
+sudo ln -sf /bin/bash /bin/sh
+
+
+Running MEMSAT-SVM
+==================
+
+To run MEMSAT-SVM using fasta files:
+
+./run_memsat-svm.pl examples/*fa
+
+
+This will call PSI-BLAST in order to generate matrix files. If you have
+already generated these, you can pass the -mtx flag to skip the PSI-BLAST
+step:
+
+./run_memsat-svm.pl -mtx 1 examples/*mtx
+
+
+To perform a constrained prediction, Pass a constraints file as an argument.
+This should have the same name as the fasta file but with a .constraints
+suffix. You can still process multiple files at once; the constraints file
+will be matched to the corresponding fasta or matrix file:
+
+./run_memsat-svm.pl -mtx 1 examples/1R3J_C.constraints examples/1R3J_C.mtx
+
+
+The constraints file should have the following format, where s,o,m,i
+are signal peptide, outside loop, membrane and inside loop:
+
+s:   1-15
+o:   1-30
+m:   37-59,82-100
+i:   65,80,220-230
+
+
+To run globmem-svm - in order to discriminate between globular and
+transmembrane proteins - pass the -p flag:
+
+./run_memsat-svm.pl -mtx 1 -p 1 examples/*mtx
+
+
+Below is a full list of command line paramaters:
+
+-p <0|1|2>     Programs to run. memsat-svm predicts topology, globmem-svm
+               discriminates between transmembrane and globular proteins. Default 0.
+               0 = Run memsat-svm
+               1 = Run memsat-svm and globmem-svm
+               2 = run globmem-svm
+-mtx <1|0>     Process PSI-BLAST .mtx files instead of fasta files. Default 0.
+-n <directory> NCBI binary directory (location of blastpgp and makemat)
+-d <path>      Database for running PSI-BLAST.
+-e <0|1>       Erase intermediate files. Default 0.
+-g <0|1>       Draw topology schematic and cartoon. Default 1.
+-m <int>       Minimum score for a transmembrane helix. Default: 220000
+-r <int>       Minimum score for a re-entrant helix.    Default: 178000
+-h <0|1>       Show help. Default 0.
+
+
+Example Results
+===============
+
+In this  example MEMSAT-SVM  is used to predict the secondary  structure and
+topology of Potassium channel KcsA.  The input file  (in FASTA format) is as
+follows:
+
+>1M57_H
+MRHSTTLTGCATGAAGLLAATAAAAQQQSLEIIGRPQPGGTGFQPSASPVATQIHWLDGFILVIIAAITIFVTL
+LILYAVWRFHEKRNKVPARFTHNSPLEIAWTIVPIVILVAIGAFSLPVLFNQQEIPEADVTVKVTGYQWYWGYE
+YPDEEISFESYMIGSPATGGDNRMSPEVEQQLIEAGYSRDEFLLATDTAMVVPVNKTVVVQVTGADVIHSWTVP
+AFGVKQDAVPGRLAQLWFRAEREGIFFGQCSELCGISHAYMPITVKVVSEEAYAAWLEQARGGTYELSSVLPAT
+PAGVSVE
+
+./run_memsat-svm.pl -p 1 examples/1M57_H.fa
+
+The following output is produced by the run_memsat-svm.pl script (note the
+paths to the NCBI directory and database will vary):
+
+
+MEMSAT-SVM: Alpha-helical transmembrane protein topology prediction
+using Support Vector Machines
+
+Running PSI-BLAST: examples/1M57_H.fa
+/usr/local/blast/bin/blastpgp -a 1 -j 2 -h 1e-3 -e 1e-3 -b 0 -d databases/uniprot_sprot -i memsat-svm_tmp.fasta -C
+memsat-svm_tmp.chk >& memsat-svm_tmp.out
+
+Generating SVM input files...
+Running svm_classify...
+bin/svm_classify -v 0 input/1M57_H_w33_GM.input models/MEMSAT-SVM_w33_GM.model output/1M57_H_SVM_w33_GM.prediction
+bin/svm_classify -v 0 input/1M57_H_w35_TM.input models/MEMSAT-SVM_w35_IO.model output/1M57_H_SVM_w35_IO.prediction
+bin/svm_classify -v 0 input/1M57_H_w33_TM.input models/MEMSAT-SVM_w33_HL.model output/1M57_H_SVM_w33_HL.prediction
+bin/svm_classify -v 0 input/1M57_H_w27_TM.input models/MEMSAT-SVM_w27_SP.model output/1M57_H_SVM_w27_SP.prediction
+bin/svm_classify -v 0 input/1M57_H_w27_TM.input models/MEMSAT-SVM_w27_RE.model output/1M57_H_SVM_w27_RE.prediction
+
+Parsing SVM output files...
+Running GLOBMEM-SVM...
+Running MEMSAT-SVM...
+bin/memsat-svm -m 220 -r 178 -f 1 output/1M57_H_SVM_ALL.out > output/1M57_H.memsat_svm
+
+Written file output/1M57_H.memsat_svm
+Written file output/1M57_H_schematic.png
+Written file output/1M57_H_cartoon_memsat_svm_.png
+Written file output/1M57_H.globmem_svm
+
+
+DISCRIMINATING TRANSMEMBRANE PROTEINS FROM GLOBULAR
+===================================================
+
+The contents of 1M57_H.globmem_svm shows that the sequence is predicted to be a
+transmembrane protein, with 49 residues predicted to lie within the membrane:
+
+Transmembrane residues found:   45
+Transmembrane score:            74.545051921
+This looks like a transmembrane protein.
+
+
+TOPOLOGY PREDICTION
+===================
+
+The contents of 1M57_H.memsat_svm is as follows:
+
+...
+
+Processing 1 helix:
+Transmembrane helix 1 from  60 (in) to  81 (out) :	3903.24
+Score = 3.772554
+
+Processing 1 helix:
+Transmembrane helix 1 from  60 (out) to  81 (in) :	3940.16
+Score = 4.070846
+
+...
+
+Processing 5 helices:
+Transmembrane helix 1 from  19 (in) to  34 (out) :	-445.657
+Transmembrane helix 2 from  60 (out) to  81 (in) :	3940.16
+Transmembrane helix 3 from  99 (in) to 119 (out) :	3253.82
+Transmembrane helix 4 from 193 (out) to 208 (in) :	-506.732
+Transmembrane helix 5 from 250 (in) to 265 (out) :	-565.749
+Score = -100000.000000
+
+Processing 4 helices:
+Transmembrane helix 1 from  60 (out) to  81 (in) :	3940.16
+Transmembrane helix 2 from  99 (in) to 119 (out) :	3253.82
+Transmembrane helix 3 from 193 (out) to 208 (in) :	-506.732
+Transmembrane helix 4 from 250 (in) to 265 (out) :	-565.749
+Score = -100000.000000
+
+Processing 3 helices:
+Transmembrane helix 1 from  19 (in) to  34 (out) :	-445.657
+Transmembrane helix 2 from  60 (out) to  81 (in) :	3940.16
+Transmembrane helix 3 from  99 (in) to 119 (out) :	3253.82
+Score = -100000.000000
+
+Processing 2 helices:
+Transmembrane helix 1 from  60 (out) to  81 (in) :	3940.16
+Transmembrane helix 2 from  99 (in) to 119 (out) :	3253.82
+Score = 7.337172
+
+....
+
+Processing 5 helices:
+Transmembrane helix 1 from  60 (out) to  81 (in) :	3940.16
+Transmembrane helix 2 from  99 (in) to 119 (out) :	3253.82
+Transmembrane helix 3 from 190 (out) to 205 (in) :	-519.582
+Transmembrane helix 4 from 209 (in) to 224 (out) :	-569.823
+Transmembrane helix 5 from 253 (out) to 268 (in) :	-559.528
+Score = -100000.000000
+
+Processing 4 helices:
+Transmembrane helix 1 from  19 (in) to  34 (out) :	-445.657
+Transmembrane helix 2 from  60 (out) to  81 (in) :	3940.16
+Transmembrane helix 3 from  99 (in) to 119 (out) :	3253.82
+Transmembrane helix 4 from 193 (out) to 208 (in) :	-506.732
+Score = -100000.000000
+
+Processing 3 helices:
+Transmembrane helix 1 from  60 (out) to  81 (in) :	3940.16
+Transmembrane helix 2 from  99 (in) to 119 (out) :	3253.82
+Transmembrane helix 3 from 193 (out) to 208 (in) :	-506.732
+Score = -100000.000000
+
+Processing 2 helices:
+Transmembrane helix 1 from  60 (in) to  81 (out) :	3903.24
+Transmembrane helix 2 from  99 (out) to 119 (in) :	3250.58
+Score = 7.010628
+
+Summary of topology analysis:
+ 1 helix   (+) : Score = 3.77255
+ 1 helix   (-) : Score = 4.07085
+ 2 helices (+) : Score = 7.01063
+ 2 helices (-) : Score = 7.33717
+ 3 helices (+) : Score = -100000
+ 3 helices (-) : Score = -100000
+ 4 helices (+) : Score = -100000
+ 4 helices (-) : Score = -100000
+ 5 helices (+) : Score = -100000
+ 5 helices (-) : Score = -100000
+
+...
+
+Results:
+Signal peptide:		1-13
+Signal score:		22.738
+Topology:		60-81,99-119
+Re-entrant helices:	Not detected.
+Helix count:		2
+N-terminal:		out
+Score:			7.33717
+
+
+All the possible topologies, and associated scores, are listed from the top
+of the file. At the bottom is a summary. Topologies with weakly predicted
+helices will be scored down (to -100000), as will topologies that do not 
+fit constraints when a constrained prediction is made. The highest scoring
+topology is returned at the bottom; in this case a 2 helix prediction with 
+the N-terminal outside, and a predicted signal peptide. The larger the 
+difference in score between the highest and second highest scoring
+topologies, the greater the prediction confidence.This topology is 
+illustrated in the files 1M57_H_schematic.png 1M57_H_cartoon_memsat_svm.png.
+A signal peptide score about 8.5 will force the N-terminal to be extracellular
+and will results in prediction of a signal peptide, regardless of the prior 
+topology prediction.
+
+Please note that the maximum sequence length is currently set to 4000 residues,
+as sequences longer than this are likely to be multi-domain proteins. The 
+maximum number of helices that can be predicted is currently set to 25. Both
+these values can be modified by changing the values MAXSEQLEN and MAXNHEL at
+the top of the memsat-svm.cpp file. However, the program was benchmarked with
+the default settings so prediction accuracy may vary if you adjust these 
+values.
+
+
+
+FINALLY
+=======
+
+If you  need  assistance in  getting  MEMSAT-SVM  working, or if you find any
+bugs, please contact the author at the following e-mail address:
+
+Timothy Nugent
+E-mail: t.nugent@cs.ucl.ac.uk
+
+Bioinformatics Unit
+Dept. of Computer Science
+University College
+Gower Street
+London
+WC1E 6BT
