@@ -9,6 +9,17 @@ All Trademarks and Registered Names are acknowledged in this document.
 THIS SOFTWARE MAY ONLY BE USED FOR NON-COMMERCIAL PURPOSES. PLEASE CONTACT
 THE AUTHOR IF YOU REQUIRE A LICENSE FOR COMMERCIAL USE.
 
+Pre-Compilation
+===============
+
+You first need to get the large model files from our download site and
+unpack them to a models/ directory.
+
+From the root dir of your memsatsvm installation
+
+wget http://bioinfadmin.cs.ucl.ac.uk/downloads/memsat-svm/models.tar.gz
+
+tar -zxvf models.tar.gz
 
 Compiling MEMSAT-SVM
 ====================
@@ -20,7 +31,7 @@ make
 
 
 A copy of SVM Light is included; the executable will be placed in the bin
-folder where the run_memsat-svm.pl expects to find it. Full details of 
+folder where the run_memsat-svm.pl expects to find it. Full details of
 SVM light, including the licence, can be found at:
 
 http://svmlight.joachims.org/
@@ -28,7 +39,7 @@ http://svmlight.joachims.org/
 
 To produce graphical representations of topology, the GD library and the
 perl GD module must be installed. The GD library should be present on
-most modern Linux distributions. The perl GD module can usually be 
+most modern Linux distributions. The perl GD module can usually be
 installed by running the following command as root:
 
 cpan -i GD
@@ -43,7 +54,7 @@ comments on top of script "run_memsat-svm.pl" and set variables accordingly.
 In particular, the absolute path to the Perl library needs to be set.
 
 Also, the path to this directory, to the NCBI binary directory and to a
-database for PSI-BLAST searches must be set. 
+database for PSI-BLAST searches must be set.
 
 my $mem_dir = '........'; # directory where "run_memsat-svm.pl" can be found
 .
@@ -74,7 +85,7 @@ available flags.
 Ubuntu Configuration
 ====================
 
-The ./run_memsat-svm.pl uses bash instead of Ubuntu's dash shell. You'll 
+The ./run_memsat-svm.pl uses bash instead of Ubuntu's dash shell. You'll
 have to change it like this:
 
 sudo ln -sf /bin/bash /bin/sh
@@ -289,23 +300,23 @@ Score:			7.33717
 
 All the possible topologies, and associated scores, are listed from the top
 of the file. At the bottom is a summary. Topologies with weakly predicted
-helices will be scored down (to -100000), as will topologies that do not 
+helices will be scored down (to -100000), as will topologies that do not
 fit constraints when a constrained prediction is made. The highest scoring
-topology is returned at the bottom; in this case a 2 helix prediction with 
-the N-terminal outside, and a predicted signal peptide. The larger the 
+topology is returned at the bottom; in this case a 2 helix prediction with
+the N-terminal outside, and a predicted signal peptide. The larger the
 difference in score between the highest and second highest scoring
-topologies, the greater the prediction confidence.This topology is 
+topologies, the greater the prediction confidence.This topology is
 illustrated in the files 1M57_H_schematic.png 1M57_H_cartoon_memsat_svm.png.
 A signal peptide score about 8.5 will force the N-terminal to be extracellular
-and will results in prediction of a signal peptide, regardless of the prior 
+and will results in prediction of a signal peptide, regardless of the prior
 topology prediction.
 
 Please note that the maximum sequence length is currently set to 4000 residues,
-as sequences longer than this are likely to be multi-domain proteins. The 
+as sequences longer than this are likely to be multi-domain proteins. The
 maximum number of helices that can be predicted is currently set to 25. Both
 these values can be modified by changing the values MAXSEQLEN and MAXNHEL at
 the top of the memsat-svm.cpp file. However, the program was benchmarked with
-the default settings so prediction accuracy may vary if you adjust these 
+the default settings so prediction accuracy may vary if you adjust these
 values.
 
 
