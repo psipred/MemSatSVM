@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/opt/ucl/bin/perl
 ## MEMSAT-SVM script
 ##
 ## *********************************************************
@@ -7,11 +7,11 @@
 ## * Integral Membrane Protein Topology Prediction Program *
 ## *    Copyright (C) 2008 Tim Nugent                      *
 ## *********************************************************
-## 
+##
 ## This program is copyright and may not be distributed without
 ## permission of the author unless specifically permitted under
 ## the terms of the license agreement.
-## 
+##
 ## THIS SOFTWARE MAY ONLY BE USED FOR NON-COMMERCIAL PURPOSES. PLEASE CONTACT
 ## THE AUTHOR IF YOU REQUIRE A LICENSE FOR COMMERCIAL USE.
 
@@ -23,19 +23,22 @@ use Getopt::Long;
 ## IMPORTANT : this variable must be set here to the absolute path to the
 ## library called "lib" and found in the same directory as this script.
 use lib 'lib';
-use Round qw(:all);
+use Math::Round qw(:all);
 
 ## IMPORTANT : this variable must be set to the directory containing this
 ## script either here or using flag '-w' at runtime.
+# my $mem_dir = '/cs/research/bioinf/home1/green/dbuchan/Code/memsat-svm';
 my $mem_dir = '';
 
 ## IMPORTANT : these paths (folder with the NCBI executables and path to the
 ## database) must be set either here or using the appropriate flags at runtime.
+# my $ncbidir = '/scratch0/NOT_BACKED_UP/dbuchan/Applications/blast-2.2.26/bin/';
+# my $dbname = '/scratch0/NOT_BACKED_UP/dbuchan/uniref/test_db.fasta';
 my $ncbidir = '';
 my $dbname = '';
 
 ## Executable and input/output paths are initialised in sub get_arguments.
-my ($input_path, $output_path, $model_path, $datadir, $svm_classify, 
+my ($input_path, $output_path, $model_path, $datadir, $svm_classify,
     $memsat_svm_bin_path, $globmem_bin_path, $mem_pred_svm_bin_path, $nnsat_bin_path);
 my $mtx = 0;
 my $remove_files = 0;
@@ -47,16 +50,16 @@ my $cores = 1;
 my $globmem_score_threshold = -0.144;
 my $global_counter = 0;
 my $helix_score = 220;
-my $re_helix_score = 178;	
+my $re_helix_score = 178;
 my $signal = 1;
-					
-my %models = ('MEMSAT-SVM_w27_RE.model'=>27, 'MEMSAT-SVM_w27_SP.model'=>27, 
-              'MEMSAT-SVM_w33_HL.model'=>33, 'MEMSAT-SVM_w35_IO.model'=>35, 
+
+my %models = ('MEMSAT-SVM_w27_RE.model'=>27, 'MEMSAT-SVM_w27_SP.model'=>27,
+              'MEMSAT-SVM_w33_HL.model'=>33, 'MEMSAT-SVM_w35_IO.model'=>35,
               'MEMSAT-SVM_w33_GM.model'=>33);
 my @windows = ("27", "33", "35", "GM");
 
-my (@mtx, $blast_out, $filename, $svm_all, $memsat_out, $memsat_out_single, $globmem_out, 
-    $png_schematic_out, $png_cartoon_out, $png_cartoon_memsat3_out, 
+my (@mtx, $blast_out, $filename, $svm_all, $memsat_out, $memsat_out_single, $globmem_out,
+    $png_schematic_out, $png_cartoon_out, $png_cartoon_memsat3_out,
     %range, %raw_hl, %raw_io, %raw_re, %raw_sp, %mtx_list, $header, @constraints);
 my ($HL_prediction, $IO_prediction, $RE_prediction, $SP_prediction, $GM_prediction, $system);
 my %topology = ();
@@ -72,7 +75,7 @@ sub main {
 	print "using Support Vector Machines\n\n";
 
 	&get_arguments();
-	
+
 	# If we've been passed .mtx files rather than fasta files
 	if ($mtx){
 
@@ -87,16 +90,16 @@ sub main {
 	# Otherwise run PSI-BLAST to create .mtx files
 	}else{
 
-		my @fastas;	
+		my @fastas;
 		foreach (@ARGV){
-	
+
 			# Deal with constraints
 			if ($_ =~ /constraints/){
 				push @constraints,$_;
 			}else{
 				push @fastas,$_;
 				&run_psiblast($_);
-			}	
+			}
 		}
 		@ARGV = @fastas;
 	}
@@ -117,7 +120,7 @@ sub main {
 		}else{
 			$y = $mtx[-1];
 		}
-	
+
 		$header = $x."-".$y;
 	}else{
 		if ($mtx[0] =~ /\//){
@@ -125,7 +128,7 @@ sub main {
 			$header = $tmp[-1];
 		}else{
 			$header = $mtx[0];
-		}	
+		}
 	}
 	$header =~ s/\.mtx//g;
 	$header =~ s/\.fasta//g;
@@ -137,11 +140,11 @@ sub main {
 	$RE_prediction = $output_path.$header."_SVM_w27_RE.prediction";
 	$SP_prediction = $output_path.$header."_SVM_w27_SP.prediction";
 	$GM_prediction = $output_path.$header."_SVM_w33_GM.prediction";
-	
+
 	# Remove input files from previous runs
 	foreach my $req_win (@windows){
 		my $input = $input_path.$header."_w".$req_win.".input";
-		my $erase = `rm $input` if -e $input;		
+		my $erase = `rm $input` if -e $input;
 	}
 
 	print "Generating SVM input files...\n";
@@ -162,27 +165,27 @@ sub main {
 	}
 	# Parse predictions and run memsat-svm, globmem-svm and produce graphics
 	foreach (@mtx){
-		
+
 		my @tmp2 = split(/\//, $_);
 		my @tmp = split(/\./, $tmp2[-1]);
-		
+
 		$filename = (defined($memsat_out_single) && (scalar(@mtx) == 1)) ? $memsat_out_single : $tmp[0];
-		
+
 		$memsat_out = $output_path.$filename.".memsat_svm";
-		$globmem_out = $output_path.$filename.".globmem_svm";	
-		$svm_all = $output_path.$filename."_SVM_ALL.out";	
+		$globmem_out = $output_path.$filename.".globmem_svm";
+		$svm_all = $output_path.$filename."_SVM_ALL.out";
 		$png_schematic_out = $output_path.$filename."_schematic.png";
 		$png_cartoon_out = $output_path.$filename."_cartoon_memsat_svm.png";
 		$png_cartoon_memsat3_out = $output_path.$filename."_cartoon_memsat3.png";
-                
+
 		&parse_predictions($_) if ($runmem3 != 2);
 		&run_memsat3($_) if ($runmem3);
-		&run_memsat($_) unless (($globmem == 2) || ($runmem3 == 2));		
-		
+		&run_memsat($_) unless (($globmem == 2) || ($runmem3 == 2));
+
 		print "Written file $globmem_out\n" if ($globmem);
 		print "\n";
 	}
-        
+
 	# Clean up
 	$system = `rm $input_path/$header* &> /dev/null` if $remove_files;
 	$system = `rm $HL_prediction $IO_prediction $RE_prediction $SP_prediction &> /dev/null` if $remove_files;
@@ -206,11 +209,11 @@ sub get_arguments {
 				"f=i" => \$format,
 				"3=i" => \$runmem3,
 				"s=i" => \$signal,
-				"c=i" => \$cores,							
+				"c=i" => \$cores,
 			        "h"  => sub {&usage;});
 
 	&usage if (!$ARGV[0]);
-	
+
 	## Make paths absolute.
 	my $currentWD = cwd();
 	foreach my $path ($mem_dir, $input_path, $output_path, $ncbidir, $dbname)
@@ -218,19 +221,19 @@ sub get_arguments {
 		next unless (defined($path));
 		$path = "$currentWD/$path" unless ((substr($path, 0, 1) eq '/') || (substr($path, 0, 1) eq '~'));
 	}
-	
+
 	## Make sure directories end with slash...
 	foreach my $path ($mem_dir, $input_path, $output_path)
 	{
 		next unless (defined($path));
 		$path .= '/' unless ($path =~ m{/$});
 	}
-	
+
 	## ...but get rid of any trailing slashes to the NCBI directory.
 	$ncbidir =~ s/\/+$//;
-	
+
 	unless($mtx){
-	
+
 		## Check the NCBI directory
 		unless (-d $ncbidir){
 
@@ -238,11 +241,11 @@ sub get_arguments {
 			my $system = `which blastpgp`;
 			if ($system =~ /(.*)\/blastpgp$/){
 				$ncbidir = $1;
-				$ncbidir =~ s/\s+//g;	
+				$ncbidir =~ s/\s+//g;
 			}
 
 			unless (-d $ncbidir){
-				print "NCBI directory $ncbidir doesn't exist. Please pass it using\n"; 
+				print "NCBI directory $ncbidir doesn't exist. Please pass it using\n";
 				print "the -n paramater or modifiy the value at the top of the script.\n\n";
 				exit 1;
 			}
@@ -252,44 +255,45 @@ sub get_arguments {
 		my $psiblast = $ncbidir."/blastpgp";
 		my $makemat = $ncbidir."/makemat";
 		unless (-e $psiblast){
-			print "Can't find the program blastpgp in the NCBI directory $ncbidir\n"; 
+			print "Can't find the program blastpgp in the NCBI directory $ncbidir\n";
 			print "Please pass the correct NCBI location using the -n parameter or modify\n";
 			print "the value at the top of the script..\n\n";
-			exit 1;			
+			exit 1;
 		}
 		unless (-e $makemat){
-			print "Can't find the program makemat in the NCBI directory $ncbidir\n"; 
+			print "Can't find the program makemat in the NCBI directory $ncbidir\n";
 			print "Please pass the correct NCBI location using the -n parameter or modify\n";
 			print "the value at the top of the script.\n\n";
-			exit 1;				
+			exit 1;
 		}
 
 		unless (-T $dbname){
-			print "The database name for PSI-BLAST searches has not been set correctly.\n"; 
+      # print $dbname
+			print "The database name for PSI-BLAST searches has not been set correctly.\n";
 			print "Please pass it using the -d parameter or modify the value at the top of the script.\n\n";
-			exit 1;		
+			exit 1;
 		}
 	}
-	
+
 	## Check that $mem_dir is valid and then set all other paths.
 	my $this_exe = $0;
 	$this_exe =~ s{^.*/}{};
-	
+
 	unless (-e $mem_dir.$this_exe){
 		print "The path to the main MEMSAT-SVM directory seems to be incorrect.\n";
-		print "Please pass it using the -w parameter or modify the value at the top of the script.\n\n"; 
-		exit 1;			
+		print "Please pass it using the -w parameter or modify the value at the top of the script.\n\n";
+		exit 1;
 	}
-	
+
 	$input_path = $mem_dir.'input/' unless (defined($input_path));
 	$output_path = $mem_dir.'output/' unless (defined($output_path));
-	
+
 	unless ((-d $input_path) && (-w $input_path) && (-d $output_path) && (-w $output_path)){
 		print "Cannot find (or write to) the 'input' and 'output' directories.\n";
 		print "Please pass valid values using the '-i' and '-j' flags or use the default folders.\n\n";
 		exit 1;
 	}
-	
+
 	$model_path = $mem_dir.'models/';
 	$datadir = $mem_dir.'data/';
 	$svm_classify = $mem_dir.'bin/svm_classify';
@@ -297,17 +301,17 @@ sub get_arguments {
 	$globmem_bin_path = $mem_dir.'bin/globmem';
 	$mem_pred_svm_bin_path = $mem_dir.'bin/mem_pred';
 	$nnsat_bin_path = $mem_dir.'bin/nnsat';
-	
+
 	unless (-e $memsat_svm_bin_path){
-		print "Can't find $memsat_svm_bin_path - have you run make?\n\n"; 
-		exit 1;			
+		print "Can't find $memsat_svm_bin_path - have you run make?\n\n";
+		exit 1;
 	}
-	
+
 	unless (-e $svm_classify){
-		print "Can't find $svm_classify - have you run make?\n\n"; 
-		exit 1;			
+		print "Can't find $svm_classify - have you run make?\n\n";
+		exit 1;
 	}
-		
+
 }
 
 # Usage
@@ -325,7 +329,7 @@ sub usage {
 	print "-3 <0|1|2>     Run memsat version 3. Default 0.\n";
 	print "               0 = Run memsat-svm\n";
 	print "               1 = Run memsat-svm and memsat3\n";
-	print "               2 = Run memsat3\n";	
+	print "               2 = Run memsat3\n";
 	print "-mtx <0|1>     Process PSI-BLAST .mtx files instead of fasta files. Default 0.\n";
 	print "-n <directory> NCBI binary directory (location of blastpgp and makemat)\n";
 	print "-d <path>      Database for running PSI-BLAST.\n";
@@ -344,7 +348,7 @@ sub usage {
 	print "-r <int>       Minimum score for a re-entrant helix.    Default: 178\n";
 	print "-h <0|1>       Show help. Default 0.\n";
 	print "-c <int>       Number of CPU cores to use for PSI-BLAST. Default 1.\n\n";
-	print "A contraints file for fasta file XYZ.fa must be named XYZ.constraints\n\n";	
+	print "A contraints file for fasta file XYZ.fa must be named XYZ.constraints\n\n";
 	print "The constraints file should have the following format, where s,o,m,i\n";
 	print "are signal peptide, outside loop, membrane and inside loop:\n";
         print "s:   1-15\n";
@@ -359,30 +363,30 @@ sub run_psiblast {
 
 	my $fasta = shift;
 	my $mtx;
-	
+
 	if ($fasta =~ /\.mtx$/){
 		print "This looks like an .mtx file! It should be a fasta file, otherwise\n";
 		print "pass the -mtx 1 flag.\n\n";
 		exit 1;
-	}	
-	
+	}
+
 	if ($fasta =~ /\//){
 		my @tmp = split(/\//,$fasta);
-		$mtx = $tmp[-1].".mtx"; 
+		$mtx = $tmp[-1].".mtx";
 	}else{
-		$mtx = $fasta.".mtx"; 
-	}	
-	
+		$mtx = $fasta.".mtx";
+	}
+
 	my $out_mtx = $output_path.$mtx;
-        
+
         my $tmp_rootname = 'memsat-svm_tmp';
 	my $tmp_rootpath = $output_path.$tmp_rootname;
 	my $blast_out = "$tmp_rootpath.out";
-        
+
 	die "Fasta file $fasta doesn't exist!\n" unless -e $fasta;
-        
+
 	unless (-e $out_mtx || -e $mtx){
-	
+
 		print "Running PSI-BLAST: $fasta\n";
 
 		my $tmp_fasta = "$tmp_rootpath.fasta";
@@ -390,9 +394,9 @@ sub run_psiblast {
 		my $system = `cp -f $fasta $tmp_fasta`;
 		print "$ncbidir/blastpgp -a $cores -j 2 -h 1e-3 -e 1e-3 -b 0 -d $dbname -i $tmp_fasta -C $tmp_chk >& $blast_out\n\n";
 		$system = `$ncbidir/blastpgp -a $cores -j 2 -h 1e-3 -e 1e-3 -b 0 -d $dbname -i $tmp_fasta -C $tmp_chk >& $blast_out`;
-		
+
 		unless (-e $tmp_chk){
-		
+
 			print "There was an error running PSI-BLAST. Did you set the database path correctly?\n\n";
 			open(ERROR,$blast_out);
 			my @error = <ERROR>;
@@ -401,29 +405,29 @@ sub run_psiblast {
 				print $line;
 			}
 			print "\n";
-			exit 1;				
-		}		
-		
+			exit 1;
+		}
+
 		$system = `echo $tmp_rootname.chk > $tmp_rootpath.pn`;
 		$system = `echo $tmp_rootname.fasta > $tmp_rootpath.sn`;
-		$system = `echo "$ncbidir/makemat -P $tmp_rootpath"`;		
+		$system = `echo "$ncbidir/makemat -P $tmp_rootpath"`;
 		$system = `$ncbidir/makemat -P $tmp_rootpath`;
 		$system = `cp $tmp_rootpath.mtx $out_mtx`;
 		$system = `rm -f ${tmp_rootpath}*`;
 		unlink('error.log');
 
 	}
-	
+
 	if (-e $mtx){
 		$system = `mv $mtx $output_path`;
-		$mtx = $output_path.$mtx;	
+		$mtx = $output_path.$mtx;
 		push @mtx,$mtx;
-	}elsif (-e $out_mtx){	
-		$mtx = $out_mtx;	
-		push @mtx,$mtx;		
+	}elsif (-e $out_mtx){
+		$mtx = $out_mtx;
+		push @mtx,$mtx;
 	}else{
 		die "Problem creating $mtx\n";
-	}	
+	}
 }
 
 # Run memsat-svm and draw images
@@ -432,7 +436,7 @@ sub run_memsat {
 	my $mtx = shift;
 	my $seq = $mtx_list{$mtx};
 	my $constrained_prediction = "";
-		
+
 	print "Running MEMSAT-SVM...\n";
 
 	foreach my $c (@constraints){
@@ -445,7 +449,7 @@ sub run_memsat {
 	my $run_command = "$memsat_svm_bin_path ".$constrained_prediction."-m $helix_score -r $re_helix_score -s $signal -f $format $svm_all > $memsat_out";
 	print "$run_command\n";
 	my $system = `$run_command`;
-	
+
 	if (-e $memsat_out){
 
 		$system = `cat $memsat_out | grep "sequence length is"`;
@@ -454,7 +458,7 @@ sub run_memsat {
 		}else{
 
 			$system = `cat $memsat_out | grep "No transmembrane helices predicted"`;
-			
+
 			if ($system){
 				print "No transmembrane helices predicted.\n"
 			}else{
@@ -463,13 +467,13 @@ sub run_memsat {
 				$system = `cat $memsat_out | grep "^Signal peptide"`;
 				my @split = split(/\s+/,$system);
 				my $pred_signal = 'Not detected.';
-				if ($split[2] ne 'Not'){				
+				if ($split[2] ne 'Not'){
 					if ($format == 1 || $format == 3){
-				
+
 						my ($start,$stop) = split(/-/,$split[2]);
 						if ($format == 3){
 							$stop =~ s/o//g;
-						}					
+						}
 						$pred_signal = $stop;
 					}else{
 						my ($start,$stop) = split(/,/,$split[2]);
@@ -484,7 +488,7 @@ sub run_memsat {
 				shift @re_helix_split if $format == 3;
 				shift @re_helix_split if $format == 2;
 				my $re_helix_array = \@re_helix_split;
-	
+
 				$system = `cat $memsat_out | grep "^N-terminal:"`;
 				@split = split(/\s+/,$system);
 				my $pred_n = $split[1];
@@ -495,23 +499,23 @@ sub run_memsat {
 				shift @topology_split if $format == 3;
 				shift @topology_split if $format == 2;
 				my $topology_array = \@topology_split;
-		
-				print "\nWritten file $memsat_out\n";	
+
+				print "\nWritten file $memsat_out\n";
 
 				unless(`perl -MGD -e 1 &> /dev/stdout`){
-				
+
 					#print "@$topology_array\n$pred_n\n@$re_helix_array\n$pred_signal\n";
 					&draw_image($filename,$seq,$topology_array,$pred_n, $re_helix_array,$pred_signal) if $graphics;
 					print "Written file $png_schematic_out\n" if $graphics;
-					print "Written file $png_cartoon_out\n" if $graphics;					
+					print "Written file $png_cartoon_out\n" if $graphics;
 					print "Written file $png_cartoon_memsat3_out\n" if $graphics && -e $png_cartoon_memsat3_out && $runmem3;
 
 				}else{
 					print "Couldn't find GD module. Graphics disabled.\n" if $graphics;
-				}			
+				}
 			}
-		}	
-	
+		}
+
 	}else{
 
 		die "Problem running $memsat_svm_bin_path\n";
@@ -523,11 +527,11 @@ sub run_memsat3 {
 
 	my $mtx = shift;
 	my $seq = $mtx_list{$mtx};
-		
+
 	print "\nRunning MEMSAT3...\n";
 
 	my $rootname = $output_path.$filename;
-	
+
 	my $globmem = "$rootname.globmem";
 	my $nn = "$rootname.nn";
 	my $memsat3 = "$rootname.memsat3";
@@ -537,14 +541,14 @@ sub run_memsat3 {
 	my $system = `$run_command`;
 	$run_command = "$mem_pred_svm_bin_path ".$datadir."weights.dat $mtx > $nn";
 	print "$run_command\n";
-	$system = `$run_command`;	
+	$system = `$run_command`;
 	$run_command = "$nnsat_bin_path $nn > $memsat3";
 	print "$run_command\n";
 	$system = `$run_command`;
-	
+
 	print "\nWritten file $globmem\n";
 	print "Written file $nn\n";
-	print "Written file $memsat3\n";	
+	print "Written file $memsat3\n";
 	print "\n" unless $runmem3 == 2;
 
 	unless (open (MEM3,$memsat3)){
@@ -552,28 +556,28 @@ sub run_memsat3 {
 	}
 	my @memsat3 = <MEM3>;
 	close MEM3;
-	
-	my $tag = 0;	
+
+	my $tag = 0;
 	foreach my $line (@memsat3){
-	
+
 		if ($line =~ /^================/){
 			$tag++;
 			next;
-		}		
+		}
 		next unless $tag;
 
 		if ($line =~ /^\d+:\s+\((\w+)\)\s(\d+)-(\d+)\s+\(-*\d+\.\d+\)/){
 			$topology{'MEMSAT3'}{'n_term'} = $1;
 			push @{$topology{'MEMSAT3'}{'topology_array'}},$2;
 			push @{$topology{'MEMSAT3'}{'topology_array'}},$3;
-		}	
+		}
 
 		if ($line =~ /^\d+:\s+(\d+)-(\d+)\s+\(-*\d+\.\d+\)/){
 			push @{$topology{'MEMSAT3'}{'topology_array'}},$1;
 			push @{$topology{'MEMSAT3'}{'topology_array'}},$2;
 		}
 	}
-	
+
 	if ($graphics && $runmem3 == 2){
 		&draw_image($filename,$seq,\%topology,'',[],0);
 		print "Written file $png_schematic_out\n";
@@ -585,33 +589,33 @@ sub run_memsat3 {
 sub parse_predictions {
 
 	my $mtx = shift;
-	
+
 	print "Parsing SVM output files...\n";
-	
+
 	my $seq = $mtx_list{$mtx};
 	my @seq = split(//,$seq);
 	my $length = length $seq;
 
 	if ($globmem != 2){
 
-	
+
 		unless (open (HL,$HL_prediction)){
 			die "Can't open $HL_prediction!\n";
 		}
 		my @hl = <HL>;
 		close HL;
-		
+
 		for($global_counter..($global_counter+$length-1)){
 			$hl[$_] =~ s/\s+//g;
 			$hl[$_] = nearest_ceil(.001,$hl[$_]);
 		}
-	
+
 			unless (open (IO,$IO_prediction)){
 		die "Can't open $IO_prediction!\n";
 		}
 		my @io = <IO>;
 		close IO;
-			
+
 		for($global_counter..($global_counter+$length-1)){
 			$io[$_] =~ s/\s+//g;
 			$io[$_] = nearest_ceil(.001,$io[$_]);
@@ -622,18 +626,18 @@ sub parse_predictions {
 		}
 		my @re = <RE>;
 		close RE;
-			
+
 		for($global_counter..($global_counter+$length-1)){
 			$re[$_] =~ s/\s+//g;
 			$re[$_] = nearest_ceil(.001,$re[$_]);
 		}
-	
+
 		unless (open (SP,$SP_prediction)){
 			die "Can't open $SP_prediction!\n";
 		}
 		my @sp = <SP>;
 		close SP;
-			
+
 		for($global_counter..($global_counter+$length-1)){
 			$sp[$_] =~ s/\s+//g;
 			$sp[$_] = nearest_ceil(.001,$sp[$_]);
@@ -646,11 +650,11 @@ sub parse_predictions {
 		open (RAW,">$svm_all");
 		my $seq_counter = 0;
 		for ($global_counter..($global_counter+$length-1)){
-		
+
 			print RAW "$seq[$seq_counter]\t$hl[$_]\t$io[$_]\t$re[$_]\t$sp[$_]\n";
-		
+
 			#print "$seq[$_]\t$hl[$_]\t$io[$_]\t$re[$_]\t$sp[$_]\n";
-			
+
 			$raw_hl{$seq_counter+1} = $hl[$_];
 			$raw_io{$seq_counter+1} = $io[$_];
 			$raw_re{$seq_counter+1} = $re[$_];
@@ -660,22 +664,22 @@ sub parse_predictions {
 
 		}
 		close RAW;
-	
+
 	}
 
 	if ($globmem){
-	
+
 		print "Running GLOBMEM-SVM...\n";
-	
+
 		unless (open (GM,$GM_prediction)){
 			die "Can't open $GM_prediction!\n";
 		}
 		my @gm = <GM>;
-		close GM;	
-		
+		close GM;
+
 		my $tm_residues = 0;
 		my $tm_score = 0;
-		
+
 		for($global_counter..($global_counter+$length-1)){
 			$gm[$_] =~ s/\s+//g;
 			$tm_residues++ if $gm[$_] > $globmem_score_threshold;
@@ -683,9 +687,9 @@ sub parse_predictions {
 				$tm_score += $gm[$_];
 			}
 		}
-		
+
 		if (1){
-			
+
 			open (GMO,">$globmem_out");
 			print GMO "Transmembrane residues found:\t$tm_residues\n";
 			print GMO "Transmembrane score:\t\t$tm_score\n";
@@ -694,9 +698,9 @@ sub parse_predictions {
 				print GMO "This looks like a transmembrane protein.\n";
 			}else{
 				print GMO "This looks like a globular protein.\n";
-			}		
+			}
 			close GMO;
-			
+
 		}
 	}
 
@@ -708,7 +712,7 @@ sub parse_predictions {
 sub classify {
 
 	print "Running svm_classify...\n";
-	
+
 	foreach my $model (keys %models){
 
 		my $type;
@@ -725,7 +729,7 @@ sub classify {
 			next unless $globmem;
 		}
 
-		if ($globmem == 2){		
+		if ($globmem == 2){
 			next unless $type eq 'GM';
 		}
 
@@ -738,7 +742,7 @@ sub classify {
 		}
 		my $prediction = $output_path.$header."_SVM_w".$models{$model}."_".$type.".prediction";;
 		$model = $model_path.$model;
-		
+
 		if (-e $model){
 
 			print "$svm_classify -v 0 $input $model $prediction\n" unless -e $prediction;
@@ -763,16 +767,16 @@ sub create_input {
 		close MTX;
 		$mtx[1] =~ s/\s+//g;
 		$mtx_list{$mtx} = $mtx[1];
-			
+
 	}else{
-		die "Couldn't find $mtx\n";	
+		die "Couldn't find $mtx\n";
 	}
 
 	if ($mtx[0] =~ /\>/){
 		print "This looks like a fasta file! It should be a .mtx file, otherwise\n";
 		print "pass the -mtx 0 flag.\n\n";
 		exit 1;
-	}	
+	}
 
 	my $length = length $mtx_list{$mtx};
 	my $seq = $mtx_list{$mtx};
@@ -783,9 +787,9 @@ sub create_input {
 	}
 
 	foreach my $reqwin (@windows){
-	
-		if ($globmem == 2){		
-			next unless $reqwin eq "GM";		
+
+		if ($globmem == 2){
+			next unless $reqwin eq "GM";
 		}
 
 		my ($input,$win);
@@ -806,7 +810,7 @@ sub create_input {
 
 
 		## Add X's to either side of seqeunce
-		my $x_string;	
+		my $x_string;
 		for (1..($win - 1)/2){
 			$x_string .= 'X';
 		}
@@ -815,7 +819,7 @@ sub create_input {
 
 		## Fill up %profile with lines from @mtx
 
-		my %profile = ();	
+		my %profile = ();
 
 		for (1..($length + $win - 1)){
 
@@ -830,15 +834,15 @@ sub create_input {
 				if (defined $mtx[$_+13-(($win - 1)/2)]){
 
 					@{$profile{$_}} = split(/\s+/,$mtx[$_+13-(($win - 1)/2)]);
-			
+
 					## Now do the Z score normalisation
-			
+
 					## Not normalised
 					#print "Not normalised: @{$profile{$_}}\n";
-			
+
 					my $z_count = 0;
 					foreach my $z (@{$profile{$_}}){
-			
+
 						## Normalise to Z score
 						$z= ($z - $range{$z_count}{'mean'})/$range{$z_count}{'sd'};
 						## Scale
@@ -853,7 +857,7 @@ sub create_input {
 					${$profile{$_}}[7],${$profile{$_}}[8],${$profile{$_}}[9],${$profile{$_}}[10],${$profile{$_}}[11],
 					${$profile{$_}}[12],${$profile{$_}}[13],${$profile{$_}}[14],${$profile{$_}}[15],${$profile{$_}}[16],
 					${$profile{$_}}[17],${$profile{$_}}[18],${$profile{$_}}[19],${$profile{$_}}[21],${$profile{$_}}[22]);
-			
+
 					@{$profile{$_}} = @aa_20;
 
 				}
@@ -863,18 +867,18 @@ sub create_input {
 		open (IN,">>$input");
 
 		for my $pos ((($win - 1)/2) + 1..($length + ($win - 1)/2)){
-		
+
 			my $real_pos = $pos - (($win - 1)/2);
 			my ($vector,$seq,@array);
-		
+
 			## Push all the arrays onto @array
-	
+
 			for my $w ($pos - (($win - 1)/2) .. $pos + (($win - 1)/2)){
 				push @array,@{$profile{$w}}
 			}
-		
+
 			## Generate sequence window for the comment
-		
+
 			for my $j ($real_pos - 1 - (($win - 1)/2) .. $real_pos - 1 + (($win - 1)/2)){
 				if ($j < 0 || $j >= $length){
 					$seq .= 'X';
@@ -918,9 +922,9 @@ sub draw_image{
 
 	my @order = ('MEMSAT-SVM');
 	push @order,'MEMSAT3' if $runmem3 == 1;
-	
+
 	if ($runmem3 == 2){
-	
+
 		@order = ('MEMSAT3') ;
 
 		my $im = DrawTransmembraneSchematic->new(-title=>$header,
@@ -937,12 +941,12 @@ sub draw_image{
 						 	 -draw_custom_plot_7=>0,
 						 	 -order=>\@order
 					         	);
-		
+
 		open(OUTPUT, ">$png_schematic_out");
 		binmode OUTPUT;
-		print OUTPUT $im->png; 
-		close OUTPUT;	
-	
+		print OUTPUT $im->png;
+		close OUTPUT;
+
 	}else{
 
 		my $im = DrawTransmembraneSchematic->new(-title=>$header,
@@ -972,11 +976,11 @@ sub draw_image{
 						 	 -custom_plot_data_7=>\%raw_sp,
 						 	 -order=>\@order
 					         	);
-		
+
 		open(OUTPUT, ">$png_schematic_out");
 		binmode OUTPUT;
-		print OUTPUT $im->png; 
-		close OUTPUT;	
+		print OUTPUT $im->png;
+		close OUTPUT;
 
 	}
 
@@ -1004,17 +1008,17 @@ sub draw_image{
 					     	       -outside_label=>'Extracellular',
 					     	       -inside_label=>'Cytoplasmic',
 					     	       -membrane_label=>'Membrane',
-					     	       -colour_scheme=>'yellow');	
+					     	       -colour_scheme=>'yellow');
 
 		open(OUTPUT, ">$png_cartoon_out");
 		binmode OUTPUT;
-		print OUTPUT $im->png; 
+		print OUTPUT $im->png;
 		close OUTPUT;
 
 	}
 
 	if ($runmem3){
-		
+
 		my $im = DrawTransmembraneCartoon->new(-title=>$header,
 	                                     	       -n_terminal=>$topology{'MEMSAT3'}{'n_term'},
 					               -topology=>$topology{'MEMSAT3'}{'topology_array'},
@@ -1023,12 +1027,12 @@ sub draw_image{
 					               -outside_label=>'Extracellular',
 					               -inside_label=>'Cytoplasmic',
 					               -membrane_label=>'Membrane',
-					               -colour_scheme=>'yellow');	
-						    
+					               -colour_scheme=>'yellow');
+
 		open(OUTPUT, ">$png_cartoon_memsat3_out");
 		binmode OUTPUT;
-		print OUTPUT $im->png; 
-		close OUTPUT;						    	
+		print OUTPUT $im->png;
+		close OUTPUT;
 	}
 
 	%raw_hl = ();
@@ -1036,7 +1040,7 @@ sub draw_image{
 	%raw_re = ();
 	%raw_sp = ();
 	%topology = ();
-	
+
 }
 
 # Load graphics modules
@@ -1189,7 +1193,7 @@ sub get_normalisation_values {
         $range{27}{'lower'} = 0;
         $range{27}{'upper'} = 33113;
         $range{27}{'range'} = 33113;
-	
+
 }
 
 sub get_gm_normalisation_values {
@@ -1334,6 +1338,5 @@ sub get_gm_normalisation_values {
         $range{27}{'lower'} = 0;
         $range{27}{'upper'} = 33113;
         $range{27}{'range'} = 33113;
-	
-}
 
+}
