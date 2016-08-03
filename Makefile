@@ -9,7 +9,7 @@ LFLAGS=-O3
 LIBS=-lm
 MKDIR=mkdir
 
-all: create_input create_bin memsat-svm svm_classify globmem mem_pred nnsat
+all: create_input create_bin create_output memsat-svm svm_classify globmem mem_pred nnsat
 
 clean:
 	rm -f bin/memsat-svm
@@ -25,6 +25,9 @@ create_input:
 
 create_bin:
 	$(MKDIR) -p bin/
+
+create_output:
+	$(MKDIR) -p output/
 
 memsat-svm: src/memsat-svm.cpp
 	$(CPP) -Wall src/memsat-svm.cpp -o bin/memsat-svm
