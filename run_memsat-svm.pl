@@ -22,7 +22,8 @@ use Getopt::Long;
 
 ## IMPORTANT : this variable must be set here to the absolute path to the
 ## library called "lib" and found in the same directory as this script.
-use lib 'lib';
+use FindBin;
+use lib "$FindBin::Bin/lib";
 use Math::Round qw(:all);
 
 ## IMPORTANT : this variable must be set to the directory containing this
