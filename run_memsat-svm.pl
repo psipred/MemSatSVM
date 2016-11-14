@@ -608,7 +608,7 @@ sub parse_predictions {
 
 		for($global_counter..($global_counter+$length-1)){
 			$hl[$_] =~ s/\s+//g;
-			$hl[$_] = nearest_ceil(.001,$hl[$_]);
+			$hl[$_] = Round::nearest_ceil(.001,$hl[$_]);
 		}
 
 			unless (open (IO,$IO_prediction)){
@@ -619,7 +619,7 @@ sub parse_predictions {
 
 		for($global_counter..($global_counter+$length-1)){
 			$io[$_] =~ s/\s+//g;
-			$io[$_] = nearest_ceil(.001,$io[$_]);
+			$io[$_] = Round::nearest_ceil(.001,$io[$_]);
 		}
 
 		unless (open (RE,$RE_prediction)){
@@ -630,7 +630,7 @@ sub parse_predictions {
 
 		for($global_counter..($global_counter+$length-1)){
 			$re[$_] =~ s/\s+//g;
-			$re[$_] = nearest_ceil(.001,$re[$_]);
+			$re[$_] = Round::nearest_ceil(.001,$re[$_]);
 		}
 
 		unless (open (SP,$SP_prediction)){
@@ -641,7 +641,7 @@ sub parse_predictions {
 
 		for($global_counter..($global_counter+$length-1)){
 			$sp[$_] =~ s/\s+//g;
-			$sp[$_] = nearest_ceil(.001,$sp[$_]);
+			$sp[$_] = Round::nearest_ceil(.001,$sp[$_]);
 		}
 
 		if (scalar @hl != scalar @io || scalar @hl != scalar @re || scalar @re != scalar @sp){
@@ -849,7 +849,7 @@ sub create_input {
 						## Scale
 						$z = ($z + (-1 * $range{$z_count}{'lower'}))/$range{$z_count}{'range'};
 						## 5 Decimal places
-						$z = nearest_ceil(.00001,$z);
+						$z = Round::nearest_ceil(.00001,$z);
 						$z_count++;
 					}
 
