@@ -19,7 +19,7 @@ use strict;
 use warnings;
 use Cwd;
 use Getopt::Long;
-
+use GD;
 ## IMPORTANT : this variable must be set here to the absolute path to the
 ## library called "lib" and found in the same directory as this script.
 use FindBin;
