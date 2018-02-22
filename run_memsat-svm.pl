@@ -269,7 +269,7 @@ sub get_arguments {
 		}
 
 		unless (-T $dbname){
-      # print $dbname
+      print "$dbname";
 			print "The database name for PSI-BLAST searches has not been set correctly.\n";
 			print "Please pass it using the -d parameter or modify the value at the top of the script.\n\n";
 			exit 1;
