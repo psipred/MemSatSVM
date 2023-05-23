@@ -289,9 +289,15 @@ sub get_arguments {
 	$input_path = $mem_dir.'input/' unless (defined($input_path));
 	$output_path = $mem_dir.'output/' unless (defined($output_path));
 
-	unless ((-d $input_path) && (-w $input_path) && (-d $output_path) && (-w $output_path)){
-		print "Cannot find (or write to) the 'input' and 'output' directories.\n";
-		print "Please pass valid values using the '-i' and '-j' flags or use the default folders.\n\n";
+	unless ((-d $output_path) && (-w $output_path)){
+		print "Cannot find (or write to) the 'output' directory: ".$output_path."\n";
+		print "Please pass valid values using the '-j' flag or use the default folder.\n\n";
+		exit 1;
+	}
+
+	unless ((-d $input_path) && (-w $input_path)){
+		print "Cannot find (or write to) the 'input' directory: ".$input_path."\n";
+		print "Please pass valid values using the '-i' flags or use the default folders.\n\n";
 		exit 1;
 	}
 

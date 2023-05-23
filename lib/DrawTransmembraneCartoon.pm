@@ -82,7 +82,7 @@ sub png {
 	my @numeric = ('helix_height','helix_width','loop_width','vertical_padding','horizontal_padding','short_length','medium_loop_length','long_loop_length','short_loop_limit','long_loop_limit','n_terminal_height','membrane_offset','text_offset','n_term_offset','c_term_offset');
 
 	foreach (@numeric){
-		die "\nParameter $_ must be numeric.\n\n" if exists $self->{$_} && $self->{$_} =~ /-{?}\D+/;
+		die "\nParameter $_ must be numeric.\n\n" if exists $self->{$_} && ($self->{$_} =~ qr/-\{?\}\D+/);
 	}
 
 	foreach (keys %{$self->{'loop_labels'}}){
