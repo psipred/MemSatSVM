@@ -1,0 +1,88 @@
+---
+
+  - name: Install libgd
+    dnf:
+      pkg: gd
+      state: latest
+    become_user: root
+    become_method: sudo
+    become: true
+
+  - name: Install libgd-devel
+    dnf:
+      pkg: gd-devel
+      state: latest
+    become_user: root
+    become_method: sudo
+    become: true
+
+#   - name: Install Round.pm
+#     become_user: root
+#     become_method: sudo
+#     become: true
+#     community.general.cpanm:
+#       name: Math::Round
+#       mirror: http://cpan.mirror.triple-it.nl/
+
+# # Previously we needed this version "sudo cpan -i L/LD/LDS/GD-2.56.tar.gz", worth noting for now
+#   - name: Install GD.pm
+#     become_user: root
+#     become_method: sudo
+#     become: true
+#     cpanm:
+#       name: GD
+#       mirror: "http://cpan.mirror.triple-it.nl/"
+
+  - name: install Round.pm
+    become_user: root
+    become_method: sudo
+    become: true
+    shell: "/usr/local/bin/cpanm Math::Round"
+
+  - name: install GD
+    become_user: root
+    become_method: sudo
+    become: true
+    shell: "/usr/local/bin/cpanm GD"
+
+  - name: Check if memsatsvm is installed
+    stat: path={{ app_location }}/memsat-svm
+    register: memsat_exist
+
+  - name : Check Out MEMSATSVM from GIT
+    when: memsat_exist.stat.exists == False
+    git:
+      repo: https://github.com/psipred/MemSatSVM.git
+      dest: "{{ app_location }}/memsat-svm"
+      clone: yes
+      force: yes
+
+  - name: Download memsat tar ball
+    when: memsat_exist.stat.exists == False
+    get_url:
+      url: http://bioinfadmin.cs.ucl.ac.uk/downloads/memsat-svm/models.tar.gz
+      dest: "{{ app_location }}/memsat-svm"
+      timeout: 120
+    register: get_url_result
+
+  - name: untar memsat model data
+    when: memsat_exist.stat.exists == False
+    unarchive:
+      src: "{{ app_location }}/memsat-svm/models.tar.gz"
+      dest: "{{ app_location }}/memsat-svm/"
+      remote_src: yes
+
+  - name: make binaries
+    shell: "cd {{ app_location }}/memsat-svm; make"
+
+  - name: update blast location
+    ansible.builtin.lineinfile:
+      path:  "{{ app_location }}/memsat-svm/run_memsat-svm.pl"
+      regexp: "my .ncbidir ="
+      line: "my $ncbidir = \"{{ app_location }}/blast-2.2.26/bin/\";"
+
+  - name: update uniref location
+    ansible.builtin.lineinfile:
+      path:  "{{ app_location }}/memsat-svm/run_memsat-svm.pl"
+      regexp: "my .dbname ="
+      line: "my $dbname = \"{{ data_location }}/uniref/{{ uniref_db }}.fasta\";"
