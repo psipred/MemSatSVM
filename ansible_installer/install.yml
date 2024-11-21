@@ -1,7 +1,7 @@
 - name: Install PSIPRED
   hosts: all
   roles:
-    # - blast
+    - blast
     - memsatsvm
   vars_files:
    - ./config_vars.yml
